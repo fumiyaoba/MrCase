@@ -1,0 +1,28 @@
+docker run --rm `
+  -v ${PWD}:/work `
+  -w /work `
+  python-slack:latest `
+  python slacktest.py ./casetest.xlsx --title "daily report" --comment "送ります 📎"
+
+
+
+MRCASE / 
+ ├─ Dockerfile 
+ ├─ __init__.py
+ ├─ MRCASE/
+ │   ├─ docs / 
+ │   │     └─ casetest.xlsx
+ │   ├─ app /
+ │   │     ├─ __init__.py
+ │   │     ├─ excel_InsertData.py
+ │   │     ├─ excel_Write.py
+ │   │     ├─ get_time.py
+ │   │     ├─ slack_FileUpload.py
+ │   │     └─ slack_ReadChannel.py
+ │   │
+ │   └─ models /
+ │   │     ├─ __init__.py
+ │          ├─ ManHourEntry_Model.py
+ │          └─ SlackMessage_Model.py
+ ├─ requirements.txt
+ └─ env.py

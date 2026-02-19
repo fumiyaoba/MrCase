@@ -1,7 +1,7 @@
 import os
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-import env
+import MRCASE.env as env
 
 # Initialize a Web API client
 slack_token = env.SLACK_BOT_TOKEN

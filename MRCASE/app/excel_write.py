@@ -3,7 +3,9 @@ from datetime import datetime, timezone, timedelta
 
 from slack_sdk import WebClient
 from openpyxl import load_workbook
-import env
+import MRCASE.env as env
+from typing import List
+from MRCASE.models.manhour_entry import ManHourEntry
 
 EXCEL_FILE = "casetest.xlsx"
 
@@ -12,7 +14,7 @@ RE_PROJECT  = re.compile(r"案件名\s*=\s*([^,\n]+)")
 RE_ASSIGNEE = re.compile(r"担当者\s*=\s*([^,\n]+)")
 RE_HOURS    = re.compile(r"時間\s*=\s*(\d+(?:\.\d+)?)")
 
-def pick_message_with_text(messages: list[dict]) -> dict | None:
+def pick_message_with_text(messages: List[ManHourEntry]) -> dict | None:
     for msg in messages:
         if msg.get("ts") and msg.get("user") and msg.get("text") and msg["text"].strip():
             return msg
