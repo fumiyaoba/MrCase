@@ -26,3 +26,42 @@ MRCASE /
  │          └─ SlackMessage_Model.py
  ├─ requirements.txt
  └─ env.py
+
+#工数計算用excelファイル
+FILE = "MRCASE/doc/casetest.xlsx"
+
+#工数計算用文言
+ADD_MAN_HOUR = "工数登録"
+
+KEY_PROJECT = "案件名"
+KEY_ASSIGNEE = "担当者"
+KEY_TIME = "時間"
+KEY_DATE = "日付"
+KEY_REMARKS = "備考"
+
+#slackMessages内のキーワード
+KEY_TEXT = "text"
+KEY_USER = "user"
+KEY_TS = "ts"
+KEY_THREAD_TS = "thread_ts"
+
+#空文字
+VALUE_EMPTY = ""
+
+# 追記先シート（None = アクティブシート）
+EXCEL_SHEET_RAW = "raw"
+EXCEL_SHEET_SUMMARY = "summary"
+
+# ヘッダー行（この行より下にデータが入る）
+EXCEL_HEADER_ROW = 1
+
+# 列定義（Excel列番号: ManHourEntry属性名）
+EXCEL_COLUMN_MAP = {
+    1: "work_date",
+    2: "assignee",
+    3: "project",
+    4: "hours",
+}
+
+# 日付の書き方
+EXCEL_DATE_FORMAT = "iso"  # "iso" or None
