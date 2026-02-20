@@ -1,10 +1,10 @@
 # MRCASE/app/main.py
-
+from MRCASE.app.slack_FileUpload import file_upload
 from MRCASE.app.slack_ReadChannel import get_channel_messages
 from MRCASE.app.filter import filter_by_first_line
 from MRCASE.app.manhour_parser import parse_man_hour_message
 from MRCASE import env
-from MRCASE.app.excel_write import append_entries_to_excel   
+import MRCASE.app.excel_write as ex
 
 def main():
     messages = get_channel_messages()
@@ -14,9 +14,8 @@ def main():
     entries = []
     for msg in filtered:
         entries.extend(parse_man_hour_message(msg.text))
-    
-    append_entries_to_excel(entries, env.FILE)
-    print(f"saved to excel: {env.FILE}")
+    ex.append_entries(entries, env.FILE, env.EXCEL_SHEET_RAW)
+    file_upload(env.FILE)
 
 if __name__ == "__main__":
     main()

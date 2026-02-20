@@ -1,69 +1,82 @@
-from __future__ import annotations
-
 from pathlib import Path
-from typing import Iterable, Optional, Any
+from typing import Iterable, Tuple
+
 from openpyxl import load_workbook
+from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
+
 from MRCASE import env
 from MRCASE.models.manhour_entry import ManHourEntry
 
-def open_sheet(excel_filepath: str | Path, excel_sheet_name: str) -> Worksheet:
+HEADERS = env.EXCEL_HEADERS
+
+
+def open_sheet(excel_filepath: str | Path, excel_sheet_name: str | None) -> Tuple[Workbook, Worksheet]:
+    """
+    excel_filepath のブックを開いて、指定シートを返す。
+    シート名が無い/見つからない場合は env.EXCEL_SHEET_RAW -> active の順で選ぶ。
+    """
     workbook = load_workbook(excel_filepath)
-    worksheet = workbook[excel_sheet_name] if excel_sheet_name else workbook[env.EXCEL_SHEET_RAW] if env.EXCEL_SHEET_RAW else workbook.active
-    return worksheet
 
-def _row_has_value(ws: Worksheet, row: int, cols: Iterable[int]) -> bool:
-    """指定行に、指定列のどれか1つでも値があるか"""
-    return any(ws.cell(row=row, column=c).value not in (None, "") for c in cols)
+    sheet = None
+    if excel_sheet_name and excel_sheet_name in workbook.sheetnames:
+        sheet = workbook[excel_sheet_name]
+    elif getattr(env, "EXCEL_SHEET_RAW", None) and env.EXCEL_SHEET_RAW in workbook.sheetnames:
+        sheet = workbook[env.EXCEL_SHEET_RAW]
+    else:
+        sheet = workbook.active
+
+    return workbook, sheet
 
 
-def _find_next_row(
-    worksheet: Worksheet,
-    *,
-    header_row: int,
-    cols_to_check: list[int],
-) -> int:
+def _find_next_row(worksheet: Worksheet) -> int:
     """
-    実データが入っている最終行 + 1 を返す。
-    max_row は書式だけの行を拾うことがあるため、値の有無で判定する。
+    次に書き込む行番号（1始まり）を返す。
+    最後の非空行の次の行。
     """
-    for r in range(worksheet.max_row, header_row, -1):
-        if _row_has_value(worksheet, r, cols_to_check):
-            return r + 1
-    return header_row + 1
+    max_row = worksheet.max_row
+
+    # シートが完全に空（max_row=1 で A1 も None など）にも耐える
+    last_row = 0
+    for row_num in range(max_row, 0, -1):
+        row = worksheet[row_num]
+        if any(cell.value is not None for cell in row):
+            last_row = row_num
+            break
+
+    return last_row + 1
 
 
-def _format_value(entry: ManHourEntry, attr: str) -> Any:
-    """ManHourEntry の値を Excel 用に整形"""
-    value = getattr(entry, attr)
-
-    if attr == "work_date" and env.EXCEL_DATE_FORMAT == "iso":
-        return value.isoformat()
-
-    return value
-
-
-def append_entries_to_excel(entries: Iterable[ManHourEntry], filepath: str | Path) -> Path:
+def _ensure_header(worksheet: Worksheet) -> None:
     """
-    既存の Excel ファイルに ManHourEntry を追記する。
-    追記位置・列構成は env.py で制御。
+    1行目が空ならヘッダを書き込む。
     """
-    path = Path(filepath)
+    first_row_values = [worksheet.cell(row=1, column=i + 1).value for i in range(len(HEADERS))]
+    if all(v is None for v in first_row_values):
+        worksheet.append(HEADERS)
 
-    sheet_name = sheet_name if sheet_name is not None else env.EXCEL_SHEET_NAME
-    header_row = header_row if header_row is not None else env.EXCEL_HEADER_ROW
-    column_map = column_map if column_map is not None else env.EXCEL_COLUMN_MAP
 
-    wb = load_workbook(path)
-    ws = wb[sheet_name] if sheet_name else wb.active
+def append_entries(
+    entries: Iterable[ManHourEntry],
+    excel_filepath: str | Path,
+    excel_sheet_name: str | None = None,
+) -> None:
+    """
+    entries を末尾に追記して保存する。
+    """
+    workbook, ws = open_sheet(excel_filepath, excel_sheet_name)
 
-    cols = sorted(column_map.keys())
-    row = _find_next_row(ws, header_row=header_row, cols_to_check=cols)
+    _ensure_header(ws)
 
-    for entry in entries:
-        for col, attr in column_map.items():
-            ws.cell(row=row, column=col, value=_format_value(entry, attr))
-        row += 1
+    next_row = _find_next_row(ws)
 
-    wb.save(path)
-    return path
+    for e in entries:
+        text_raw = getattr(e, "text_raw", "")  # 無ければ空
+        ws.cell(row=next_row, column=1, value=e.work_date)
+        ws.cell(row=next_row, column=2, value=e.project)
+        ws.cell(row=next_row, column=3, value=e.assignee)
+        ws.cell(row=next_row, column=4, value=float(e.hours))
+        ws.cell(row=next_row, column=5, value=text_raw)
+        next_row += 1
+
+    workbook.save(excel_filepath)
