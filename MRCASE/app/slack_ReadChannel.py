@@ -19,7 +19,7 @@ def get_channel_messages() -> list[SlackMessage]:
             user=msg.get(env.KEY_USER),
             ts=msg[env.KEY_TS],
             thread_ts=msg.get(env.KEY_THREAD_TS),
-            #raw=msg
+            raw=msg
         )
         for msg in messages
     ]

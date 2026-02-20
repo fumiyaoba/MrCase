@@ -1,77 +1,82 @@
-import re
-from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from typing import Iterable, Tuple
 
-from slack_sdk import WebClient
 from openpyxl import load_workbook
-import MRCASE.env as env
-from typing import List
+from openpyxl.workbook.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
+
+from MRCASE import env
 from MRCASE.models.manhour_entry import ManHourEntry
 
-EXCEL_FILE = "casetest.xlsx"
+HEADERS = env.EXCEL_HEADERS
 
-# 必須3項目だけを「どこにあっても」抜く
-RE_PROJECT  = re.compile(r"案件名\s*=\s*([^,\n]+)")
-RE_ASSIGNEE = re.compile(r"担当者\s*=\s*([^,\n]+)")
-RE_HOURS    = re.compile(r"時間\s*=\s*(\d+(?:\.\d+)?)")
 
-def pick_message_with_text(messages: List[ManHourEntry]) -> dict | None:
-    for msg in messages:
-        if msg.get("ts") and msg.get("user") and msg.get("text") and msg["text"].strip():
-            return msg
-    return None
+def open_sheet(excel_filepath: str | Path, excel_sheet_name: str | None) -> Tuple[Workbook, Worksheet]:
+    """
+    excel_filepath のブックを開いて、指定シートを返す。
+    シート名が無い/見つからない場合は env.EXCEL_SHEET_RAW -> active の順で選ぶ。
+    """
+    workbook = load_workbook(excel_filepath)
 
-def parse_fields(text: str):
-    # 本文全体から検索（改行があってもOK）
-    m1 = RE_PROJECT.search(text)
-    m2 = RE_ASSIGNEE.search(text)
-    m3 = RE_HOURS.search(text)
-
-    if not (m1 and m2 and m3):
-        return None
-
-    project = m1.group(1).strip()
-    assignee = m2.group(1).strip()
-    hours = float(m3.group(1))
-    return project, assignee, hours
-
-def main():
-    client = WebClient(token=env.SLACK_BOT_TOKEN)
-    channel_id = env.SLACK_CHANNEL_ID
-
-    resp = client.conversations_history(channel=channel_id)
-    messages = resp.get("messages", [])
-    if not messages:
-        print("メッセージなし")
-        return
-
-    msg = pick_message_with_text(messages)
-    if not msg:
-        print("textが入っているメッセージが見つかりませんでした")
-        return
-
-    slack_ts = msg["ts"]
-    user_id = msg.get("user")
-    text_raw = msg.get("text", "")
-
-    parsed = parse_fields(text_raw)
-    if parsed:
-        project, assignee, hours = parsed
+    sheet = None
+    if excel_sheet_name and excel_sheet_name in workbook.sheetnames:
+        sheet = workbook[excel_sheet_name]
+    elif getattr(env, "EXCEL_SHEET_RAW", None) and env.EXCEL_SHEET_RAW in workbook.sheetnames:
+        sheet = workbook[env.EXCEL_SHEET_RAW]
     else:
-        project = assignee = None
-        hours = None
+        sheet = workbook.active
 
-    # ts → JST
-    jst = timezone(timedelta(hours=9))
-    dt_jst = datetime.fromtimestamp(float(slack_ts), tz=timezone.utc).astimezone(jst)
+    return workbook, sheet
 
-    wb = load_workbook(EXCEL_FILE)
-    ws = wb["raw"]
 
-    ws.append([slack_ts, dt_jst.isoformat(), user_id, project, assignee, hours, text_raw])
-    wb.save(EXCEL_FILE)
+def _find_next_row(worksheet: Worksheet) -> int:
+    """
+    次に書き込む行番号（1始まり）を返す。
+    最後の非空行の次の行。
+    """
+    max_row = worksheet.max_row
 
-    print("1行書き込みました")
-    print("parsed:", (project, assignee, hours))
+    # シートが完全に空（max_row=1 で A1 も None など）にも耐える
+    last_row = 0
+    for row_num in range(max_row, 0, -1):
+        row = worksheet[row_num]
+        if any(cell.value is not None for cell in row):
+            last_row = row_num
+            break
 
-if __name__ == "__main__":
-    main()
+    return last_row + 1
+
+
+def _ensure_header(worksheet: Worksheet) -> None:
+    """
+    1行目が空ならヘッダを書き込む。
+    """
+    first_row_values = [worksheet.cell(row=1, column=i + 1).value for i in range(len(HEADERS))]
+    if all(v is None for v in first_row_values):
+        worksheet.append(HEADERS)
+
+
+def append_entries(
+    entries: Iterable[ManHourEntry],
+    excel_filepath: str | Path,
+    excel_sheet_name: str | None = None,
+) -> None:
+    """
+    entries を末尾に追記して保存する。
+    """
+    workbook, ws = open_sheet(excel_filepath, excel_sheet_name)
+
+    _ensure_header(ws)
+
+    next_row = _find_next_row(ws)
+
+    for e in entries:
+        text_raw = getattr(e, "text_raw", "")  # 無ければ空
+        ws.cell(row=next_row, column=1, value=e.work_date)
+        ws.cell(row=next_row, column=2, value=e.project)
+        ws.cell(row=next_row, column=3, value=e.assignee)
+        ws.cell(row=next_row, column=4, value=float(e.hours))
+        ws.cell(row=next_row, column=5, value=text_raw)
+        next_row += 1
+
+    workbook.save(excel_filepath)
