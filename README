@@ -2,8 +2,7 @@ docker run --rm `
   -v ${PWD}:/work `
   -w /work `
   python-slack:latest `
-  python slacktest.py ./casetest.xlsx --title "daily report" --comment "送ります 📎"
-
+  python -m MRCASE.app.main
 
 
 MRCASE / 
