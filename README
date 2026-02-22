@@ -5,6 +5,8 @@ docker run --rm `
   python -m MRCASE.app.main
 
 
+docker compose up -d --build
+
 MRCASE / 
  ├─ Dockerfile 
  ├─ __init__.py
