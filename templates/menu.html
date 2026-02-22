@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Menu</title>
+</head>
+
+<body>
+    <h1>メニュー</h1>
+
+    <p>ログイン中: {{ request.user.username }}</p>
+    <p>admin: {{ request.user.is_staff }}</p>
+
+    <ul>
+        <li><a href="/admin/">管理画面</a></li>
+        <li><a href="{% url 'case_list' %}">案件一覧</a></li>
+        <li><a href="{% url 'case_create' %}">案件登録</a></li>
+    </ul>
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">ログアウト</button>
+    </form>
+</body>
+
+</html>
