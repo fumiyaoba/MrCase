@@ -1,2 +1,5 @@
 slack_sdk
 openpyxl
+psycopg[binary]==3.*
+Django==6.0.*
+celery[redis]
