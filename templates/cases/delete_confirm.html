@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}案件削除{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>案件削除</h1>
+  <a href="{% url 'case_list' %}" class="btn btn-secondary">← 一覧へ戻る</a>
+</div>
+
+<div class="card" style="max-width:500px">
+  <p style="margin-bottom:1.2rem">以下の案件を削除してもよいですか？</p>
+  <div style="background:#f8fafc; border-radius:8px; padding:1rem; margin-bottom:1.5rem">
+    <div><strong>案件名:</strong> {{ case.name }}</div>
+    <div style="margin-top:.4rem; color:#64748b; font-size:.88rem">{{ case.description }}</div>
+  </div>
+  <div class="alert alert-danger" style="margin-bottom:1.2rem">
+    ⚠️ この操作は取り消せません。工数レコードが紐付いている場合は削除できません。
+  </div>
+  <form method="post" style="display:flex; gap:.75rem">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">削除する</button>
+    <a href="{% url 'case_list' %}" class="btn btn-secondary">キャンセル</a>
+  </form>
+</div>
+{% endblock %}
