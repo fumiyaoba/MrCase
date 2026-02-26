@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}工数一覧{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>工数一覧</h1>
+  <a href="{% url 'manhour_download' %}?year={{ year }}&month={{ month }}" class="btn btn-success">
+    ⬇ Excel ダウンロード
+  </a>
+</div>
+
+<!-- 月・案件フィルタ -->
+<div class="card" style="padding:1.2rem 2rem">
+  <form method="get" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap">
+    <div class="form-group">
+      <label for="year">年</label>
+      <select name="year" id="year" style="width:100px">
+        {% for y in years %}
+        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}年</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="month">月</label>
+      <select name="month" id="month" style="width:80px">
+        {% for m in months %}
+        <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}月</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="case_id">案件</label>
+      <select name="case_id" id="case_id" style="min-width:160px">
+        <option value="">すべて</option>
+        {% for c in cases %}
+        <option value="{{ c.id }}" {% if selected_case_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-bottom:0">絞り込む</button>
+    <a href="{% url 'manhour_list' %}" class="btn btn-secondary" style="margin-bottom:0">リセット</a>
+  </form>
+</div>
+
+<!-- 集計 -->
+<div style="display:flex; gap:1rem; margin-bottom:1.2rem">
+  <div class="card" style="flex:1; padding:1.2rem 1.5rem; text-align:center">
+    <div style="font-size:.85rem; color:#64748b">件数</div>
+    <div style="font-size:1.8rem; font-weight:800; color:#1e293b">{{ records|length }}</div>
+  </div>
+  <div class="card" style="flex:1; padding:1.2rem 1.5rem; text-align:center">
+    <div style="font-size:.85rem; color:#64748b">合計工数</div>
+    <div style="font-size:1.8rem; font-weight:800; color:#3b82f6">{{ total_hours }}h</div>
+  </div>
+  <div class="card" style="flex:2; padding:1.2rem 1.5rem; display:flex; align-items:center; gap:.5rem">
+    <span style="font-size:.9rem; color:#64748b">
+      {{ year }}年{{ month }}月の工数を表示中
+      {% if not request.user.is_staff %}（自分の分のみ）{% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- テーブル -->
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>案件名</th>
+        <th>担当者</th>
+        <th>時間(h)</th>
+        <th>登録日時</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>{{ r.work_date|date:"Y/m/d" }}</td>
+        <td>
+          {{ r.project_name }}
+          {% if not r.case %}
+          <span class="tag" style="background:#fef3c7;color:#92400e;font-size:.72rem">未マッチ</span>
+          {% endif %}
+        </td>
+        <td>{{ r.assignee }}</td>
+        <td><strong>{{ r.hours }}</strong></td>
+        <td style="color:#94a3b8; font-size:.82rem">{{ r.created_at|date:"Y/m/d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center; color:#94a3b8; padding:2rem">
+          {{ year }}年{{ month }}月の工数データがありません
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top:.5rem; font-size:.82rem; color:#94a3b8">
+  ※「未マッチ」はSlackの案件名が登録済み案件と一致しなかったレコードです。
+</div>
+{% endblock %}

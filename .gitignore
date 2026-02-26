@@ -1,4 +1,29 @@
 env.py
+# Python
 __pycache__/
+*.pyc
+*.pyo
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# 環境変数（絶対にコミットしない）
+.env
+
+# Excel出力
+MRCASE/doc/casetest.xlsx
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+
+# IDE
+.vscode/
+.idea/
+/
 *.pyc
 .env

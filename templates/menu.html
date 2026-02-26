@@ -1,27 +1,43 @@
-<!doctype html>
-<html>
+{% extends "base.html" %}
+{% block title %}メニュー{% endblock %}
 
-<head>
-    <meta charset="utf-8" />
-    <title>Menu</title>
-</head>
+{% block content %}
+<div class="page-header">
+  <h1>メニュー</h1>
+  <span>
+    ようこそ、<strong>{{ request.user.username }}</strong> さん
+    {% if request.user.is_staff %}<span class="tag tag-admin">管理者</span>{% endif %}
+  </span>
+</div>
 
-<body>
-    <h1>メニュー</h1>
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:1.2rem;">
 
-    <p>ログイン中: {{ request.user.username }}</p>
-    <p>admin: {{ request.user.is_staff }}</p>
+  <a href="{% url 'case_list' %}" style="text-decoration:none">
+    <div class="card" style="text-align:center; cursor:pointer; transition: box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(59,130,246,.2)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-size:2.5rem; margin-bottom:.6rem">📋</div>
+      <div style="font-weight:700; color:#1e293b">案件一覧</div>
+      <div style="font-size:.83rem; color:#64748b; margin-top:.3rem">登録されている案件を確認</div>
+    </div>
+  </a>
 
-    <ul>
-        <li><a href="/admin/">管理画面</a></li>
-        <li><a href="{% url 'case_list' %}">案件一覧</a></li>
-        <li><a href="{% url 'case_create' %}">案件登録</a></li>
-    </ul>
+  {% if request.user.is_staff or request.user.is_superuser %}
+  <a href="{% url 'case_create' %}" style="text-decoration:none">
+    <div class="card" style="text-align:center; cursor:pointer; transition: box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(59,130,246,.2)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-size:2.5rem; margin-bottom:.6rem">➕</div>
+      <div style="font-weight:700; color:#1e293b">案件登録</div>
+      <div style="font-size:.83rem; color:#64748b; margin-top:.3rem">新しい案件を追加する</div>
+      <span class="tag tag-admin" style="margin-top:.5rem">管理者のみ</span>
+    </div>
+  </a>
+  {% endif %}
 
-    <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit">ログアウト</button>
-    </form>
-</body>
+  <a href="{% url 'manhour_list' %}" style="text-decoration:none">
+    <div class="card" style="text-align:center; cursor:pointer; transition: box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(59,130,246,.2)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-size:2.5rem; margin-bottom:.6rem">⏱️</div>
+      <div style="font-weight:700; color:#1e293b">工数一覧</div>
+      <div style="font-size:.83rem; color:#64748b; margin-top:.3rem">工数の確認・ダウンロード</div>
+    </div>
+  </a>
 
-</html>
+</div>
+{% endblock %}

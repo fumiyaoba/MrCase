@@ -1,68 +1,96 @@
-docker run --rm `
-  -v ${PWD}:/work `
-  -w /work `
-  python-slack:latest `
-  python -m MRCASE.app.main
+# MrCase - 工数管理システム
 
+Slack の日報メッセージを毎日 0:00 に自動取り込み、
+Web 画面で案件・工数を管理し、月次 Excel を Slack に自動送信するシステムです。
 
+---
+
+## 機能
+
+| 機能 | 管理者 | 使用者 |
+|------|-------|-------|
+| ログイン | ✅ | ✅ |
+| 案件一覧 | ✅ | ✅ |
+| 案件登録・編集・削除 | ✅ | ❌ |
+| 工数一覧（全員分） | ✅ | ❌ |
+| 工数一覧（自分分） | ✅ | ✅ |
+| Excel ダウンロード | ✅ | ✅（自分分のみ） |
+| Slack 自動取込（0時） | 自動実行 | - |
+
+---
+
+## 起動方法
+
+### 1. 環境変数を設定
+
+```bash
+cp .env.example .env
+# .env を編集して SLACK_BOT_TOKEN, SLACK_CHANNEL_ID を設定
+```
+
+### 2. Docker Compose で起動
+
+```bash
 docker compose up -d --build
+```
 
-MRCASE / 
- ├─ Dockerfile 
- ├─ __init__.py
- ├─ MRCASE/
- │   ├─ docs / 
- │   │     └─ casetest.xlsx
- │   ├─ app /
- │   │     ├─ __init__.py
- │   │     ├─ excel_InsertData.py
- │   │     ├─ excel_Write.py
- │   │     ├─ get_time.py
- │   │     ├─ slack_FileUpload.py
- │   │     └─ slack_ReadChannel.py
- │   │
- │   └─ models /
- │   │     ├─ __init__.py
- │          ├─ ManHourEntry_Model.py
- │          └─ SlackMessage_Model.py
- ├─ requirements.txt
- └─ env.py
+### 3. 管理者ユーザーを作成
 
-#工数計算用excelファイル
-FILE = "MRCASE/doc/casetest.xlsx"
+```bash
+docker compose exec web python manage.py createsuperuser
+```
 
-#工数計算用文言
-ADD_MAN_HOUR = "工数登録"
+---
 
-KEY_PROJECT = "案件名"
-KEY_ASSIGNEE = "担当者"
-KEY_TIME = "時間"
-KEY_DATE = "日付"
-KEY_REMARKS = "備考"
+## Slack 日報フォーマット
 
-#slackMessages内のキーワード
-KEY_TEXT = "text"
-KEY_USER = "user"
-KEY_TS = "ts"
-KEY_THREAD_TS = "thread_ts"
+対象チャンネルに以下の形式で投稿する:
 
-#空文字
-VALUE_EMPTY = ""
+```
+工数登録
+案件名=案件君, 担当者=大場, 時間=2, 日付=2026/02/18
+案件名=案件君, 担当者=大場, 時間=3, 日付=2026/02/19
+```
 
-# 追記先シート（None = アクティブシート）
-EXCEL_SHEET_RAW = "raw"
-EXCEL_SHEET_SUMMARY = "summary"
+- 1行目が `工数登録` のメッセージのみ処理
+- 2行目以降に1工数エントリを記述（複数行OK）
+- 毎日 0:00 (Asia/Tokyo) に自動取込 → 当月 Excel を Slack に送信
 
-# ヘッダー行（この行より下にデータが入る）
-EXCEL_HEADER_ROW = 1
+---
 
-# 列定義（Excel列番号: ManHourEntry属性名）
-EXCEL_COLUMN_MAP = {
-    1: "work_date",
-    2: "assignee",
-    3: "project",
-    4: "hours",
-}
+## 主要ファイル
 
-# 日付の書き方
-EXCEL_DATE_FORMAT = "iso"  # "iso" or None
+```
+MrCase/
+├── config/
+│   ├── settings.py       # Django設定（env変数対応）
+│   ├── celery.py         # Celery + Beat スケジュール
+│   └── urls.py           # URLルーティング
+├── jobs/
+│   ├── models/
+│   │   ├── case.py           # 案件モデル
+│   │   └── manhour_record.py # 工数レコードモデル
+│   ├── views.py              # 全ビュー（権限制御付き）
+│   ├── tasks.py              # Celery タスク（Slack取込・Excel送信）
+│   └── admin.py              # 管理画面設定
+├── MRCASE/
+│   ├── app/
+│   │   ├── slack_ReadChannel.py  # Slack メッセージ取得
+│   │   ├── slack_FileUpload.py   # Slack ファイルアップロード
+│   │   ├── manhour_parser.py     # メッセージパーサー
+│   │   └── filter.py             # メッセージフィルタ
+│   └── env.py                    # 環境変数読み込み
+├── templates/
+│   ├── base.html
+│   ├── login.html
+│   ├── menu.html
+│   ├── cases/
+│   │   ├── list.html / create.html / edit.html / delete_confirm.html
+│   └── manhours/
+│       └── list.html
+├── compose.yaml
+├── Dockerfile
+├── .env.example          # ← コピーして .env を作成
+└── requirements.txt
+```
+
