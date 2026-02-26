@@ -170,12 +170,14 @@ def _import_from_slack() -> int:
             assignee = entry.assignee or sender_name
             case = Case.objects.filter(unique_key=entry.case_key, is_active=True).first()
 
-            # 担当者名からDjangoユーザーを検索
+            # Slack user_id から Django ユーザーを検索
             from django.contrib.auth.models import User
-            user = (
-                User.objects.filter(last_name=assignee).first()
-                or User.objects.filter(username=assignee).first()
-            )
+            from jobs.models import UserProfile
+            slack_user_id = msg.user
+            user = None
+            if slack_user_id:
+                profile = UserProfile.objects.filter(slack_user_id=slack_user_id).first()
+                user = profile.user if profile else None
 
             ManHourRecord.objects.create(
                 case=case,

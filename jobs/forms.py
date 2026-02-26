@@ -20,6 +20,11 @@ class UserCreateForm(forms.ModelForm):
         widget=forms.PasswordInput,
     )
     is_staff = forms.BooleanField(label="管理者にする", required=False)
+    slack_user_id = forms.CharField(
+        label="Slack メンバーID",
+        required=False,
+        help_text="Slackのプロフィール「・・・」→「メンバーIDをコピー」で取得できます",
+    )
 
     class Meta:
         model = User
@@ -40,11 +45,21 @@ class UserCreateForm(forms.ModelForm):
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
+            from jobs.models import UserProfile
+            UserProfile.objects.update_or_create(
+                user=user,
+                defaults={"slack_user_id": self.cleaned_data.get("slack_user_id", "")},
+            )
         return user
 
 
 class UserEditForm(forms.ModelForm):
     is_staff = forms.BooleanField(label="管理者にする", required=False)
+    slack_user_id = forms.CharField(
+        label="Slack メンバーID",
+        required=False,
+        help_text="Slackのプロフィール「・・・」→「メンバーIDをコピー」で取得できます",
+    )
     password = forms.CharField(
         label="新しいパスワード（変更しない場合は空欄）",
         widget=forms.PasswordInput,
@@ -59,6 +74,15 @@ class UserEditForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ["username", "last_name", "first_name", "is_staff"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 既存のslack_user_idを初期値にセット
+        if self.instance and self.instance.pk:
+            try:
+                self.fields["slack_user_id"].initial = self.instance.profile.slack_user_id
+            except Exception:
+                pass
 
     def clean(self):
         cleaned_data = super().clean()
@@ -77,4 +101,9 @@ class UserEditForm(forms.ModelForm):
             user.set_password(password)
         if commit:
             user.save()
+            from jobs.models import UserProfile
+            UserProfile.objects.update_or_create(
+                user=user,
+                defaults={"slack_user_id": self.cleaned_data.get("slack_user_id", "")},
+            )
         return user
