@@ -109,7 +109,7 @@ def manhour_list(request):
     )
 
     if not is_admin(request.user):
-        records = records.filter(assignee=request.user.get_full_name() or request.user.username)
+        records = records.filter(user=request.user)
 
     if case_id:
         try:
@@ -147,7 +147,7 @@ def manhour_download(request):
     )
 
     if not is_admin(request.user):
-        records = records.filter(assignee=request.user.get_full_name() or request.user.username)
+        records = records.filter(user=request.user)
 
     records = records.order_by("work_date", "assignee")
 
