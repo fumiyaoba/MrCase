@@ -15,7 +15,7 @@ Web 画面で案件・工数を管理し、月次 Excel を Slack に自動送�
 | 工数一覧（全員分） | ✅ | ❌ |
 | 工数一覧（自分分） | ✅ | ✅ |
 | Excel ダウンロード | ✅ | ✅（自分分のみ） |
-| Slack 自動取込（0時） | 自動実行 | - |
+| Slack 自動取込（毎日0時） | 自動実行 | - |
 
 ---
 
@@ -25,8 +25,18 @@ Web 画面で案件・工数を管理し、月次 Excel を Slack に自動送�
 
 ```bash
 cp .env.example .env
-# .env を編集して SLACK_BOT_TOKEN, SLACK_CHANNEL_ID を設定
 ```
+
+`.env` を編集して各項目を設定してください。
+
+#### SECRET_KEY の生成
+
+```bash
+docker compose exec web python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+生成された文字列を `.env` の `DJANGO_SECRET_KEY` に設定してください。
+開発環境と本番環境で**別々のキーを使う**ようにしてください。
 
 ### 2. Docker Compose で起動
 
@@ -34,7 +44,13 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-### 3. 管理者ユーザーを作成
+### 3. マイグレーションを実行
+
+```bash
+docker compose exec web python manage.py migrate
+```
+
+### 4. 管理者ユーザーを作成
 
 ```bash
 docker compose exec web python manage.py createsuperuser
@@ -48,13 +64,28 @@ docker compose exec web python manage.py createsuperuser
 
 ```
 工数登録
-案件名=案件君, 担当者=大場, 時間=2, 日付=2026/02/18
-案件名=案件君, 担当者=大場, 時間=3, 日付=2026/02/19
+案件=A3F9B2C1, 時間=2
+案件=B4G7C3D2, 時間=3, 日付=2026/02/17
+案件=C5H8D4E3, 時間=1, 担当者=大場
 ```
 
-- 1行目が `工数登録` のメッセージのみ処理
-- 2行目以降に1工数エントリを記述（複数行OK）
+| 項目 | 必須 | 省略時の動作 |
+|------|------|------------|
+| 案件 | ✅ | - |
+| 時間 | ✅ | - |
+| 日付 | ❌ | メッセージの送信日を使用 |
+| 担当者 | ❌ | Slackの送信者名を使用 |
+
+- 1行目は必ず `工数登録` にする
+- 案件には Web 画面で発行された **8桁のユニークキー** を入力する
+- 時間は小数対応（例: `2.5` = 2時間30分）
 - 毎日 0:00 (Asia/Tokyo) に自動取込 → 当月 Excel を Slack に送信
+
+### 手動で取り込みたい場合
+
+```bash
+docker compose exec web python manage.py shell -c "from jobs.tasks import manual_import; print(f'{manual_import()}件登録しました')"
+```
 
 ---
 
@@ -63,16 +94,17 @@ docker compose exec web python manage.py createsuperuser
 ```
 MrCase/
 ├── config/
-│   ├── settings.py       # Django設定（env変数対応）
-│   ├── celery.py         # Celery + Beat スケジュール
-│   └── urls.py           # URLルーティング
+│   ├── settings.py           # Django設定（env変数対応）
+│   ├── celery.py             # Celery + Beat スケジュール（毎日0時）
+│   └── urls.py               # URLルーティング
 ├── jobs/
 │   ├── models/
-│   │   ├── case.py           # 案件モデル
-│   │   └── manhour_record.py # 工数レコードモデル
-│   ├── views.py              # 全ビュー（権限制御付き）
-│   ├── tasks.py              # Celery タスク（Slack取込・Excel送信）
-│   └── admin.py              # 管理画面設定
+│   │   ├── case.py               # 案件モデル（ユニークキー自動生成）
+│   │   ├── manhour_record.py     # 工数レコードモデル
+│   │   └── slack_import_state.py # Slack取込状態（最終取得ts管理）
+│   ├── views.py                  # 全ビュー（権限制御付き）
+│   ├── tasks.py                  # Celery タスク（Slack取込・Excel送信）
+│   └── admin.py                  # 管理画面設定
 ├── MRCASE/
 │   ├── app/
 │   │   ├── slack_ReadChannel.py  # Slack メッセージ取得
@@ -85,12 +117,22 @@ MrCase/
 │   ├── login.html
 │   ├── menu.html
 │   ├── cases/
-│   │   ├── list.html / create.html / edit.html / delete_confirm.html
+│   │   ├── list.html
+│   │   ├── create.html
+│   │   ├── edit.html
+│   │   └── delete_confirm.html
 │   └── manhours/
 │       └── list.html
 ├── compose.yaml
 ├── Dockerfile
-├── .env.example          # ← コピーして .env を作成
+├── .env.example              # ← コピーして .env を作成
 └── requirements.txt
 ```
 
+---
+
+## 注意事項
+
+- `.env` は絶対に Git にコミットしない
+- 本番環境では `DJANGO_DEBUG=false` に設定する
+- `DJANGO_SECRET_KEY` は開発・本番で別々のものを使う
