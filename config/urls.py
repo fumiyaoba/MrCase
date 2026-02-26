@@ -22,4 +22,10 @@ urlpatterns = [
     # 工数
     path("manhours/", jobs_views.manhour_list, name="manhour_list"),
     path("manhours/download/", jobs_views.manhour_download, name="manhour_download"),
+
+    # ユーザー管理
+    path("users/", jobs_views.user_list, name="user_list"),
+    path("users/new/", jobs_views.user_create, name="user_create"),
+    path("users/<int:pk>/edit/", jobs_views.user_edit, name="user_edit"),
+    path("users/<int:pk>/delete/", jobs_views.user_delete, name="user_delete"),
 ]

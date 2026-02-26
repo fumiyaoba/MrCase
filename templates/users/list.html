@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}ユーザー管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>ユーザー管理</h1>
+  <a href="{% url 'user_create' %}" class="btn btn-primary">＋ 新規ユーザー</a>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ユーザー名</th>
+        <th>氏名</th>
+        <th>権限</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>
+          <strong>{{ u.username }}</strong>
+          {% if u == request.user %}
+          <span class="tag" style="background:#e0f2fe;color:#0369a1;font-size:.72rem">自分</span>
+          {% endif %}
+        </td>
+        <td>{{ u.last_name }}{{ u.first_name }}</td>
+        <td>
+          {% if u.is_superuser %}
+          <span class="tag tag-admin">スーパーユーザー</span>
+          {% elif u.is_staff %}
+          <span class="tag tag-admin">管理者</span>
+          {% else %}
+          <span class="tag tag-inactive">使用者</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'user_edit' u.pk %}" class="btn btn-secondary btn-sm">編集</a>
+          {% if u != request.user %}
+          <a href="{% url 'user_delete' u.pk %}" class="btn btn-danger btn-sm">削除</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" style="text-align:center; color:#94a3b8; padding:2rem">ユーザーがいません</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
