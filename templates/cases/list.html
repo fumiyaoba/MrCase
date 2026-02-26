@@ -30,7 +30,21 @@
       <tr>
         <td style="color:#94a3b8">{{ c.id }}</td>
         <td>
-          <code style="background:#f1f5f9; padding:3px 8px; border-radius:6px; font-size:.9rem; letter-spacing:.05em">{{ c.unique_key }}</code>
+          <div style="display:flex; align-items:center; gap:.4rem">
+            <code style="background:#f1f5f9; padding:3px 8px; border-radius:6px; font-size:.9rem; letter-spacing:.05em">{{ c.unique_key }}</code>
+            <button
+              onclick="copyKey(this, '{{ c.unique_key }}')"
+              style="border:none; background:none; cursor:pointer; color:#94a3b8; padding:2px 4px; border-radius:4px; transition:all .15s; line-height:0"
+              onmouseover="this.style.color='#3b82f6'"
+              onmouseout="this.style.color='#94a3b8'"
+              title="コピー"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
         </td>
         <td><strong>{{ c.name }}</strong></td>
         <td style="color:#64748b; max-width:280px">{{ c.description|truncatechars:60 }}</td>
@@ -58,4 +72,18 @@
     </tbody>
   </table>
 </div>
+
+<div id="copy-toast" style="display:none; position:fixed; bottom:2rem; right:2rem; background:#1e293b; color:#fff; padding:.6rem 1.2rem; border-radius:8px; font-size:.9rem; box-shadow:0 4px 12px rgba(0,0,0,.2)">
+  コピーしました！
+</div>
+
+<script>
+function copyKey(btn, key) {
+  navigator.clipboard.writeText(key).then(() => {
+    const toast = document.getElementById('copy-toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 1500);
+  });
+}
+</script>
 {% endblock %}
