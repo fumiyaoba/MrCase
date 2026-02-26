@@ -15,11 +15,11 @@
   <ul class="nav-links">
     <li><a href="{% url 'case_list' %}">案件一覧</a></li>
     {% if user.is_staff or user.is_superuser %}
-    <li><a href="{% url 'case_create' %}">＋ 案件登録<span class="badge">管理者</span></a></li>
+    <li><a href="{% url 'case_create' %}">＋ 案件登録</a></li>
     {% endif %}
     <li><a href="{% url 'manhour_list' %}">工数一覧</a></li>
     {% if user.is_staff or user.is_superuser %}
-    <li><a href="{% url 'user_list' %}">ユーザー管理<span class="badge">管理者</span></a></li>
+    <li><a href="{% url 'user_list' %}">ユーザー管理</a></li>
     {% endif %}
     <li>
       <form method="post" action="{% url 'logout' %}" style="margin:0">
