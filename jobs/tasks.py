@@ -83,6 +83,8 @@ def _get_slack_username(user_id: str) -> str:
             or res["user"].get("name")
             or user_id
         )
+        # ゼロ幅スペースなど不可視文字を除去
+        name = "".join(c for c in name if c.isprintable() and ord(c) != 0x200b)
         _user_cache[user_id] = name
         return name
     except Exception as exc:
@@ -168,8 +170,16 @@ def _import_from_slack() -> int:
             assignee = entry.assignee or sender_name
             case = Case.objects.filter(unique_key=entry.case_key, is_active=True).first()
 
+            # 担当者名からDjangoユーザーを検索
+            from django.contrib.auth.models import User
+            user = (
+                User.objects.filter(last_name=assignee).first()
+                or User.objects.filter(username=assignee).first()
+            )
+
             ManHourRecord.objects.create(
                 case=case,
+                user=user,
                 project_name=case.name if case else entry.case_key,
                 assignee=assignee,
                 work_date=entry.work_date,

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from jobs.models.case import Case
 
@@ -9,6 +10,13 @@ class ManHourRecord(models.Model):
         related_name="manhour_records",
         null=True,
         blank=True,
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="manhour_records",
     )
     # Slackメッセージの案件名（case が見つからない場合も保持）
     project_name = models.CharField(max_length=200)
