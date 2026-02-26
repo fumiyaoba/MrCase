@@ -38,6 +38,11 @@ class UserCreateForm(forms.ModelForm):
             raise forms.ValidationError("パスワードが一致しません。")
         if password:
             validate_password(password)
+        # 一般ユーザーはSlackID必須
+        is_staff = cleaned_data.get("is_staff")
+        slack_user_id = cleaned_data.get("slack_user_id", "").strip()
+        if not is_staff and not slack_user_id:
+            raise forms.ValidationError("一般ユーザーの場合は Slack メンバーID は必須です。")
         return cleaned_data
 
     def save(self, commit=True):
@@ -77,7 +82,6 @@ class UserEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 既存のslack_user_idを初期値にセット
         if self.instance and self.instance.pk:
             try:
                 self.fields["slack_user_id"].initial = self.instance.profile.slack_user_id
@@ -92,6 +96,11 @@ class UserEditForm(forms.ModelForm):
             raise forms.ValidationError("パスワードが一致しません。")
         if password:
             validate_password(password)
+        # 一般ユーザーはSlackID必須
+        is_staff = cleaned_data.get("is_staff")
+        slack_user_id = cleaned_data.get("slack_user_id", "").strip()
+        if not is_staff and not slack_user_id:
+            raise forms.ValidationError("一般ユーザーの場合は Slack メンバーID は必須です。")
         return cleaned_data
 
     def save(self, commit=True):
